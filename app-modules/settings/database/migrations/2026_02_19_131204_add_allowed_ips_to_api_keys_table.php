@@ -17,14 +17,4 @@ return new class extends Migration
             $table->json('allowed_ips')->nullable()->after('expires_at');
         });
     }
-
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::table('api_keys', function (Blueprint $table) {
-            $table->dropColumn('allowed_ips');
-        });
-    }
 };

@@ -17,14 +17,4 @@ return new class extends Migration
             $table->string('image')->nullable();
         });
     }
-
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::table('products', function (Blueprint $table) {
-            $table->dropColumn('image');
-        });
-    }
 };

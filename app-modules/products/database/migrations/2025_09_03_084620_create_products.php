@@ -39,12 +39,4 @@ return new class extends Migration
             $table->unique(['warehouse_id', 'name']);
         });
     }
-
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('products');
-    }
 };

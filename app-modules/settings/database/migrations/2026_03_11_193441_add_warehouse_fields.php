@@ -17,15 +17,4 @@ return new class extends Migration
             $table->foreignId('order_statuses_id_completed_picklist')->nullable()->constrained('order_statuses')->onUpdate('cascade')->onDelete('cascade');
         });
     }
-
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::table('warehouses', function (Blueprint $table) {
-            $table->dropForeign(['order_statuses_id_completed_picklist']);
-            $table->dropColumn('order_statuses_id_completed_picklist');
-        });
-    }
 };

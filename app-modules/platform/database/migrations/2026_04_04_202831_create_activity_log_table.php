@@ -25,13 +25,4 @@ class CreateActivityLogTable extends Migration
                 $table->index('log_name');
             });
     }
-
-    public function down(): void
-    {
-        $connection = config('activitylog.database_connection');
-        $tableName = config('activitylog.table_name');
-
-        Schema::connection(is_string($connection) || $connection === null ? $connection : null)
-            ->dropIfExists((string) $tableName);
-    }
 }

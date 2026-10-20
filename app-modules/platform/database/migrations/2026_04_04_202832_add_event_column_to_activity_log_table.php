@@ -18,15 +18,4 @@ class AddEventColumnToActivityLogTable extends Migration
                 $table->string('event')->nullable()->after('description');
             });
     }
-
-    public function down(): void
-    {
-        $connection = config('activitylog.database_connection');
-        $tableName = config('activitylog.table_name');
-
-        Schema::connection(is_string($connection) || $connection === null ? $connection : null)
-            ->table((string) $tableName, function (Blueprint $table): void {
-                $table->dropColumn('event');
-            });
-    }
 }

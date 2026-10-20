@@ -21,18 +21,4 @@ return new class extends Migration
             $table->json('attribute_changes')->nullable();
         });
     }
-
-    public function down(): void
-    {
-        $connection = config('activitylog.database_connection');
-        $connectionName = is_string($connection) ? $connection : null;
-
-        if (! Schema::connection($connectionName)->hasColumn(config('activitylog.table_name'), 'attribute_changes')) {
-            return;
-        }
-
-        Schema::connection($connectionName)->table(config('activitylog.table_name'), function (Blueprint $table) {
-            $table->dropColumn('attribute_changes');
-        });
-    }
 };

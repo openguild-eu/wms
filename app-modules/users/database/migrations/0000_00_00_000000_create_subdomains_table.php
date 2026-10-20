@@ -20,12 +20,4 @@ class CreateSubdomainsTable extends Migration
             $table->timestamps();
         });
     }
-
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('subdomains');
-    }
 }
