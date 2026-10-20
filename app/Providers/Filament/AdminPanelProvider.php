@@ -6,6 +6,7 @@ namespace App\Providers\Filament;
 
 use AlizHarb\ActivityLog\ActivityLogPlugin;
 use App\Filament\Pages\Dashboard;
+use App\Filament\Pages\Notes;
 use App\Filament\Pages\WarehouseMap;
 use App\Http\Middleware\IdentifySubdomain;
 use App\Models\Warehouse;
@@ -73,6 +74,7 @@ class AdminPanelProvider extends PanelProvider
             ->pages([
                 Dashboard::class,
                 WarehouseMap::class,
+                Notes::class,
             ])
             ->navigationGroups([
                 NavigationGroup::make()

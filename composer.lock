@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "c8d5815c9ac853ad644c93aea2c9f287",
+    "content-hash": "99977de6eb8bb7dc52ebeea5d37a865a",
     "packages": [
         {
             "name": "ageekdev/laravel-barcode",
@@ -4825,6 +4825,42 @@
                     "Modules\\Clients\\Tests\\": "tests/",
                     "Modules\\Clients\\Database\\Factories\\": "database/factories/",
                     "Modules\\Clients\\Database\\Seeders\\": "database/seeders/"
+                }
+            },
+            "license": [
+                "proprietary"
+            ],
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "modules/notes",
+            "version": "1.0",
+            "dist": {
+                "type": "path",
+                "url": "app-modules/notes",
+                "reference": "a992a93235b315b017343111e718f1c0df88f7c3"
+            },
+            "require": {
+                "filament/filament": "^4.0",
+                "laravel/framework": "^12.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Modules\\Notes\\Providers\\NotesServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Modules\\Notes\\": "src/",
+                    "Modules\\Notes\\Tests\\": "tests/",
+                    "Modules\\Notes\\Database\\Factories\\": "database/factories/",
+                    "Modules\\Notes\\Database\\Seeders\\": "database/seeders/"
                 }
             },
             "license": [

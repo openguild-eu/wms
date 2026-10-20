@@ -91,12 +91,14 @@ class PicklistResource extends Resource
                 Section::make('Failed Scans')
                     ->columnSpan('full')
                     ->schema([
-                        FailedProductsTable::make('failedProducts'),
+                        FailedProductsTable::make('failedProducts')
+                            ->default([]),
                     ]),
                 Section::make('Products')
                     ->columnSpan('full')
                     ->schema([
-                        ProductsTable::make('products'),
+                        ProductsTable::make('products')
+                            ->default([]),
                     ]),
             ]);
     }

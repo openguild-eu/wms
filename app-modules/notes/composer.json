@@ -1,0 +1,27 @@
+{
+	"name": "modules/notes",
+	"description": "",
+	"type": "library",
+	"version": "1.0",
+	"license": "proprietary",
+	"require": {
+		"filament/filament": "^4.0",
+		"laravel/framework": "^12.0"
+	},
+	"autoload": {
+		"psr-4": {
+			"Modules\\Notes\\": "src/",
+			"Modules\\Notes\\Tests\\": "tests/",
+			"Modules\\Notes\\Database\\Factories\\": "database/factories/",
+			"Modules\\Notes\\Database\\Seeders\\": "database/seeders/"
+		}
+	},
+	"minimum-stability": "stable",
+	"extra": {
+		"laravel": {
+			"providers": [
+				"Modules\\Notes\\Providers\\NotesServiceProvider"
+			]
+		}
+	}
+}

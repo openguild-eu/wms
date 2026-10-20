@@ -244,6 +244,7 @@ Each existing domain and its new work is documented in its own file:
 - [`clients.md`](clients.md) — Clients; History tab bug fix
 - [`orders.md`](orders.md) — Orders, Order Statuses, Purchase Orders (implemented), E-commerce Order API (planned); History tab bug fix + new work
 - [`picklists.md`](picklists.md) — Picklists; History tab (new work)
+- [`notes.md`](notes.md) — Notes: a single warehouse-wide, append-only message board (`Modules\Notes` module + one standalone `App\Filament\Pages\Notes` page), grouped by date, newest first, with no per-record subject (new work)
 - [`platform.md`](platform.md) — AI persistence, cross-cutting findings
 - [`dashboard.md`](dashboard.md) — Tenant dashboard page and widgets: order/picklist backlog, monthly sales charts, low-stock and top-products tables (new work)
 
