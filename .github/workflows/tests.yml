@@ -32,6 +32,11 @@ jobs:
           coverage: none
       - name: Prepare environment
         run: cp .env.example .env
+      - name: Configure Composer auth for Filament
+        env:
+          FILAMENT_USERNAME: ${{ secrets.FILAMENT_USERNAME }}
+          FILAMENT_LICENSE_KEY: ${{ secrets.FILAMENT_LICENSE_KEY }}
+        run: composer config http-basic.packages.filamentphp.com "$FILAMENT_USERNAME" "$FILAMENT_LICENSE_KEY"
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist
       - name: Set up Node

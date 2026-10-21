@@ -85,7 +85,13 @@
         "test": [
             "@php artisan config:clear --ansi",
             "@php artisan test"
-        ]
+        ],
+        "test:phpstan": "vendor/bin/phpstan analyse --level=5 --memory-limit=1G",
+        "test:pest": [
+            "@php artisan config:clear --ansi",
+            "@php artisan test"
+        ],
+        "cs": "vendor/bin/pint"
     },
     "extra": {
         "laravel": {

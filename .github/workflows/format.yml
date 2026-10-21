@@ -3,7 +3,7 @@ name: format
 on:
   push:
     branches:
-      - 5.x
+      - main
 
 permissions:
   contents: read
@@ -30,6 +30,11 @@ jobs:
         uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
         with:
           php-version: 8.4
+      - name: Configure Composer auth for Filament
+        env:
+          FILAMENT_USERNAME: ${{ secrets.FILAMENT_USERNAME }}
+          FILAMENT_LICENSE_KEY: ${{ secrets.FILAMENT_LICENSE_KEY }}
+        run: composer config http-basic.packages.filamentphp.com "$FILAMENT_USERNAME" "$FILAMENT_LICENSE_KEY"
       - name: Install Composer dependencies
         run: composer install --no-interaction --no-scripts
       - name: Run code style fixes
