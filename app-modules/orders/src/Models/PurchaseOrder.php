@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Orders\Models;
 
+use AlizHarb\ActivityLog\Contracts\HasActivityLogTitle;
 use App\Models\Concerns\BelongsToWarehouse;
 use App\Models\Warehouse;
 use Illuminate\Database\Eloquent\Model;
@@ -11,12 +12,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Modules\Notes\Models\Concerns\HasNotes;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
-class PurchaseOrder extends Model
+class PurchaseOrder extends Model implements HasActivityLogTitle
 {
     use BelongsToWarehouse;
+    use HasNotes;
     use LogsActivity;
 
     /**

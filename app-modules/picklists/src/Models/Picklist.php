@@ -4,19 +4,22 @@ declare(strict_types=1);
 
 namespace Modules\Picklists\Models;
 
+use AlizHarb\ActivityLog\Contracts\HasActivityLogTitle;
 use App\Models\Concerns\BelongsToWarehouse;
 use App\Models\Warehouse;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Modules\Notes\Models\Concerns\HasNotes;
 use Modules\Orders\Models\Order;
 use Modules\Products\Models\StockLocation;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
-class Picklist extends Model
+class Picklist extends Model implements HasActivityLogTitle
 {
     use BelongsToWarehouse;
+    use HasNotes;
     use LogsActivity;
 
     protected $fillable = ['id', 'order_id', 'warehouse_id', 'completed', 'comments', 'generated_custom_picklist_id', 'back_order'];

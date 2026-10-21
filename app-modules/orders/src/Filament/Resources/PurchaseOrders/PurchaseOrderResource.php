@@ -27,6 +27,7 @@ use Modules\Orders\Filament\Resources\PurchaseOrders\Pages\CreatePurchaseOrder;
 use Modules\Orders\Filament\Resources\PurchaseOrders\Pages\EditPurchaseOrder;
 use Modules\Orders\Filament\Resources\PurchaseOrders\Pages\ListPurchaseOrders;
 use Modules\Orders\Filament\Resources\PurchaseOrders\Pages\ManagePurchaseOrderActivities;
+use Modules\Orders\Filament\Resources\PurchaseOrders\Pages\ManagePurchaseOrderNotes;
 use Modules\Orders\Filament\Resources\PurchaseOrders\Pages\ViewPurchaseOrder;
 use Modules\Orders\Filament\Resources\PurchaseOrders\Schemas\PurchaseOrderForm;
 use Modules\Orders\Filament\Resources\PurchaseOrders\Tables\PurchaseOrdersTable;
@@ -45,6 +46,7 @@ class PurchaseOrderResource extends Resource
         return $page->generateNavigationItems([
             ViewPurchaseOrder::class,
             EditPurchaseOrder::class,
+            ManagePurchaseOrderNotes::class,
             ManagePurchaseOrderActivities::class,
         ]);
     }
@@ -115,6 +117,7 @@ class PurchaseOrderResource extends Resource
             'create' => CreatePurchaseOrder::route('/create'),
             'view' => ViewPurchaseOrder::route('/{record}'),
             'edit' => EditPurchaseOrder::route('/{record}/edit'),
+            'notes' => ManagePurchaseOrderNotes::route('/{record}/notes'),
             'history' => ManagePurchaseOrderActivities::route('/{record}/history'),
         ];
     }

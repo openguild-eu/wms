@@ -18,6 +18,7 @@ use Modules\Picklists\Filament\Infolists\Components\FailedProductsTable;
 use Modules\Picklists\Filament\Infolists\Components\ProductsTable;
 use Modules\Picklists\Filament\Resources\Picklists\Pages\ListPicklists;
 use Modules\Picklists\Filament\Resources\Picklists\Pages\ManagePicklistActivities;
+use Modules\Picklists\Filament\Resources\Picklists\Pages\ManagePicklistNotes;
 use Modules\Picklists\Filament\Resources\Picklists\Pages\ViewPicklist;
 use Modules\Picklists\Filament\Resources\Picklists\Schemas\PicklistForm;
 use Modules\Picklists\Filament\Resources\Picklists\Tables\PicklistsTable;
@@ -35,6 +36,7 @@ class PicklistResource extends Resource
     {
         return $page->generateNavigationItems([
             ViewPicklist::class,
+            ManagePicklistNotes::class,
             ManagePicklistActivities::class,
         ]);
     }
@@ -130,6 +132,7 @@ class PicklistResource extends Resource
         return [
             'index' => ListPicklists::route('/'),
             'view' => ViewPicklist::route('/{record}'),
+            'notes' => ManagePicklistNotes::route('/{record}/notes'),
             'history' => ManagePicklistActivities::route('/{record}/history'),
         ];
     }

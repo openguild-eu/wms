@@ -16,6 +16,7 @@ use Modules\Orders\Filament\Resources\Orders\Pages\CreateOrder;
 use Modules\Orders\Filament\Resources\Orders\Pages\EditOrder;
 use Modules\Orders\Filament\Resources\Orders\Pages\ListOrders;
 use Modules\Orders\Filament\Resources\Orders\Pages\ManageOrderActivities;
+use Modules\Orders\Filament\Resources\Orders\Pages\ManageOrderNotes;
 use Modules\Orders\Filament\Resources\Orders\Schemas\OrderForm;
 use Modules\Orders\Filament\Resources\Orders\Tables\OrdersTable;
 use Modules\Orders\Models\Order;
@@ -32,6 +33,7 @@ class OrderResource extends Resource
     {
         return $page->generateNavigationItems([
             EditOrder::class,
+            ManageOrderNotes::class,
             ManageOrderActivities::class,
         ]);
     }
@@ -64,6 +66,7 @@ class OrderResource extends Resource
             'index' => ListOrders::route('/'),
             'create' => CreateOrder::route('/create'),
             'edit' => EditOrder::route('/{record}/edit'),
+            'notes' => ManageOrderNotes::route('/{record}/notes'),
             'history' => ManageOrderActivities::route('/{record}/history'),
         ];
     }

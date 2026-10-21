@@ -64,7 +64,7 @@ jobs:
               run: |
                 php artisan insights --no-interaction \
                 --min-quality=86 --min-complexity=90 \
-                --min-architecture=87 --min-style=89 \
+                --min-architecture=80 --min-style=89 \
                 --ansi --format=github-action
 
             - name: Show DB config

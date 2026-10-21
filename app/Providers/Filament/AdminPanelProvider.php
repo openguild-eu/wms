@@ -6,7 +6,6 @@ namespace App\Providers\Filament;
 
 use AlizHarb\ActivityLog\ActivityLogPlugin;
 use App\Filament\Pages\Dashboard;
-use App\Filament\Pages\Notes;
 use App\Filament\Pages\WarehouseMap;
 use App\Http\Middleware\IdentifySubdomain;
 use App\Models\Warehouse;
@@ -61,6 +60,7 @@ class AdminPanelProvider extends PanelProvider
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverResources(in: base_path('app-modules/brands/src/Filament/Resources'), for: 'Modules\Brands\Filament\Resources')
             ->discoverResources(in: base_path('app-modules/clients/src/Filament/Resources'), for: 'Modules\Clients\Filament\Resources')
+            ->discoverResources(in: base_path('app-modules/notes/src/Filament/Resources'), for: 'Modules\Notes\Filament\Resources')
             ->discoverResources(in: base_path('app-modules/orders/src/Filament/Resources'), for: 'Modules\Orders\Filament\Resources')
             ->discoverResources(in: base_path('app-modules/picklists/src/Filament/Resources'), for: 'Modules\Picklists\Filament\Resources')
             ->discoverResources(in: base_path('app-modules/products/src/Filament/Resources'), for: 'Modules\Products\Filament\Resources')
@@ -74,7 +74,6 @@ class AdminPanelProvider extends PanelProvider
             ->pages([
                 Dashboard::class,
                 WarehouseMap::class,
-                Notes::class,
             ])
             ->navigationGroups([
                 NavigationGroup::make()

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Products\Models;
 
+use AlizHarb\ActivityLog\Contracts\HasActivityLogTitle;
 use App\Models\Concerns\BelongsToWarehouse;
 use App\Models\Warehouse;
 use Illuminate\Database\Eloquent\Model;
@@ -14,15 +15,17 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 use Modules\Brands\Models\Brand;
+use Modules\Notes\Models\Concerns\HasNotes;
 use Modules\Settings\Models\Attribute;
 use Modules\Settings\Models\VatRate;
 use Spatie\Activitylog\Models\Activity;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
-class Product extends Model
+class Product extends Model implements HasActivityLogTitle
 {
     use BelongsToWarehouse;
+    use HasNotes;
     use LogsActivity;
 
     /**
