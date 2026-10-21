@@ -3,10 +3,10 @@
 declare(strict_types=1);
 use AlizHarb\ActivityLog\Pages\UserActivitiesPage;
 use AlizHarb\ActivityLog\Widgets\ActivityChartWidget;
-use App\Filament\Resources\ActivityLogs\ActivityLogResource;
 use AlizHarb\ActivityLog\Widgets\ActivityHeatmapWidget;
 use AlizHarb\ActivityLog\Widgets\ActivityStatsWidget;
 use AlizHarb\ActivityLog\Widgets\LatestActivityWidget;
+use App\Filament\Resources\ActivityLogs\ActivityLogResource;
 
 return [
     /*

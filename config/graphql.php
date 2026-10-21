@@ -1,6 +1,20 @@
 <?php
 
 declare(strict_types=1);
+use App\GraphQL\Mutations\Quest\CreateProductMutation;
+use App\GraphQL\Mutations\Quest\DeleteProductMutation;
+use App\GraphQL\Mutations\Quest\UpdateProductMutation;
+use App\GraphQL\Queries\Student\ProductQuery;
+use App\GraphQL\Queries\Student\ProductsQuery;
+use App\GraphQL\Types\ProductType;
+use Rebing\GraphQL\GraphQL;
+use Rebing\GraphQL\GraphQLController;
+use Rebing\GraphQL\Support\CursorPaginationType;
+use Rebing\GraphQL\Support\ExecutionMiddleware\AddAuthUserContextValueMiddleware;
+use Rebing\GraphQL\Support\ExecutionMiddleware\AutomaticPersistedQueriesMiddleware;
+use Rebing\GraphQL\Support\ExecutionMiddleware\ValidateOperationParamsMiddleware;
+use Rebing\GraphQL\Support\PaginationType;
+use Rebing\GraphQL\Support\SimplePaginationType;
 
 return [
     'route' => [
@@ -9,7 +23,7 @@ return [
 
         // The controller/method to use in GraphQL request.
         // Also supported array syntax: `[\Rebing\GraphQL\GraphQLController::class, 'query']`
-        'controller' => Rebing\GraphQL\GraphQLController::class.'@query',
+        'controller' => GraphQLController::class.'@query',
 
         // Any middleware for the graphql route group
         // This middleware will apply to all schemas
@@ -75,13 +89,13 @@ return [
     'schemas' => [
         'default' => [
             'query' => [
-                'student' => \App\GraphQL\Queries\Student\ProductQuery::class,
-                'students' => \App\GraphQL\Queries\Student\ProductsQuery::class,
+                'student' => ProductQuery::class,
+                'students' => ProductsQuery::class,
             ],
             'mutation' => [
-                'createProduct' => \App\GraphQL\Mutations\Quest\CreateProductMutation::class,
-                'updateProduct' => \App\GraphQL\Mutations\Quest\UpdateProductMutation::class,
-                'deleteProduct' => \App\GraphQL\Mutations\Quest\DeleteProductMutation::class,
+                'createProduct' => CreateProductMutation::class,
+                'updateProduct' => UpdateProductMutation::class,
+                'deleteProduct' => DeleteProductMutation::class,
             ],
             'middleware' => [],
             'method' => ['get', 'post'],
@@ -98,7 +112,7 @@ return [
     // ]
     //
     'types' => [
-        \App\GraphQL\Types\ProductType::class,
+        ProductType::class,
         // ExampleType::class,
         // ExampleRelationType::class,
         // \Rebing\GraphQL\Support\UploadType::class,
@@ -111,7 +125,7 @@ return [
     //     'message' => '',
     //     'locations' => []
     // ]
-    'error_formatter' => [Rebing\GraphQL\GraphQL::class, 'formatError'],
+    'error_formatter' => [GraphQL::class, 'formatError'],
 
     /*
      * Custom Error Handling
@@ -120,7 +134,7 @@ return [
      *
      * The default handler will pass exceptions to laravel Error Handling mechanism
      */
-    'errors_handler' => [Rebing\GraphQL\GraphQL::class, 'handleErrors'],
+    'errors_handler' => [GraphQL::class, 'handleErrors'],
 
     /*
      * Options to limit the query complexity and depth. See the doc
@@ -137,19 +151,19 @@ return [
      * You can define your own pagination type.
      * Reference \Rebing\GraphQL\Support\PaginationType::class
      */
-    'pagination_type' => Rebing\GraphQL\Support\PaginationType::class,
+    'pagination_type' => PaginationType::class,
 
     /*
      * You can define your own simple pagination type.
      * Reference \Rebing\GraphQL\Support\SimplePaginationType::class
      */
-    'simple_pagination_type' => Rebing\GraphQL\Support\SimplePaginationType::class,
+    'simple_pagination_type' => SimplePaginationType::class,
 
     /*
      * You can define your own cursor pagination type.
      * Reference Rebing\GraphQL\Support\CursorPaginationType::class
      */
-    'cursor_pagination_type' => Rebing\GraphQL\Support\CursorPaginationType::class,
+    'cursor_pagination_type' => CursorPaginationType::class,
 
     /*
      * Overrides the default field resolver
@@ -207,10 +221,10 @@ return [
      * Execution middlewares
      */
     'execution_middleware' => [
-        Rebing\GraphQL\Support\ExecutionMiddleware\ValidateOperationParamsMiddleware::class,
+        ValidateOperationParamsMiddleware::class,
         // AutomaticPersistedQueriesMiddleware listed even if APQ is disabled, see the docs for the `'apq'` configuration
-        Rebing\GraphQL\Support\ExecutionMiddleware\AutomaticPersistedQueriesMiddleware::class,
-        Rebing\GraphQL\Support\ExecutionMiddleware\AddAuthUserContextValueMiddleware::class,
+        AutomaticPersistedQueriesMiddleware::class,
+        AddAuthUserContextValueMiddleware::class,
         // \Rebing\GraphQL\Support\ExecutionMiddleware\UnusedVariablesMiddleware::class,
     ],
 
