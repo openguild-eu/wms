@@ -6,6 +6,7 @@ use App\Models\ApiKey;
 use App\Models\Subdomain;
 use App\Models\Warehouse;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\URL;
 use Modules\Clients\Models\Client;
 use Modules\Orders\Models\OrderProduct;
 use Modules\Orders\Models\OrderStatus;
@@ -26,6 +27,16 @@ function createApiOrderContext(int $onStockQuantity = 10, bool $stockUnlimited =
     ]);
 
     app()->instance('current_subdomain', $subdomain);
+
+    // Illuminate\Foundation\Testing\Concerns\MakesHttpRequests::prepareUrlForRequest()
+    // builds every test request's URL via the `url()` helper, which resolves
+    // its host from the UrlGenerator's cached root — not from a `Host`
+    // header passed to postJson(). Symfony's Request::create() then derives
+    // HTTP_HOST from that URL, so an explicit 'Host' header in
+    // apiOrderHeaders() below is never actually seen by IdentifySubdomain
+    // unless the root URL is forced to match it (config('app.url') alone is
+    // read once at boot and does not retroactively change the cached root).
+    URL::forceRootUrl('http://api-orders.wms.test');
 
     $warehouse = Warehouse::query()->create([
         'subdomain_id' => $subdomain->id,
