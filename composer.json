@@ -28,10 +28,11 @@
         "modules/products": "*",
         "modules/settings": "*",
         "modules/users": "*",
+        "phpoffice/phpspreadsheet": "^5.10",
         "rebing/graphql-laravel": "^9.10",
         "spatie/laravel-activitylog": "^5.0",
-        "spatie/laravel-pdf": "^2.2",
-        "spatie/laravel-health": "^1.40"
+        "spatie/laravel-health": "^1.40",
+        "spatie/laravel-pdf": "^2.2"
     },
     "require-dev": {
         "barryvdh/laravel-ide-helper": "^3.7",

@@ -24,8 +24,9 @@ use League\Csv\Writer;
 use Livewire\Component;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use OpenSpout\Reader\XLSX\Reader as XlsxReader;
+use PhpOffice\PhpSpreadsheet\Reader\Xls as XlsReader;
 
-class ImportWithXlsxAction extends ImportAction
+class ImportWithSpreadsheetAction extends ImportAction
 {
     protected function setUp(): void
     {
@@ -45,17 +46,7 @@ class ImportWithXlsxAction extends ImportAction
             FileUpload::make('file')
                 ->label(__('filament-actions::import.modal.form.file.label'))
                 ->placeholder(__('filament-actions::import.modal.form.file.placeholder'))
-                ->acceptedFileTypes([
-                    'text/csv',
-                    'text/x-csv',
-                    'application/csv',
-                    'application/x-csv',
-                    'text/comma-separated-values',
-                    'text/x-comma-separated-values',
-                    'text/plain',
-                    'application/vnd.ms-excel',
-                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                ])
+                ->acceptedFileTypes($this->getAcceptedFileTypes())
                 ->rules($action->getFileValidationRules())
                 ->afterStateUpdated(function (FileUpload $component, Component $livewire, Set $set, ?TemporaryUploadedFile $state) use ($action): void {
                     if (! $state instanceof TemporaryUploadedFile) {
@@ -151,6 +142,43 @@ class ImportWithXlsxAction extends ImportAction
     }
 
     /**
+     * Legacy .xls files are OLE compound documents, which `finfo` often detects as a generic OLE type instead of `application/vnd.ms-excel`.
+     *
+     * @return array<int, string>
+     */
+    public function getAcceptedFileTypes(): array
+    {
+        return [
+            'text/csv',
+            'text/x-csv',
+            'application/csv',
+            'application/x-csv',
+            'text/comma-separated-values',
+            'text/x-comma-separated-values',
+            'text/plain',
+            'application/vnd.ms-excel',
+            'application/vnd.ms-office',
+            'application/x-msexcel',
+            'application/x-ole-storage',
+            'application/CDFV2',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'application/zip',
+            'application/octet-stream',
+        ];
+    }
+
+    /**
+     * @return array<mixed>
+     */
+    public function getFileValidationRules(): array
+    {
+        return array_map(
+            fn (mixed $rule): mixed => $rule === 'extensions:csv,txt' ? 'extensions:csv,txt,xls,xlsx' : $rule,
+            parent::getFileValidationRules(),
+        );
+    }
+
+    /**
      * @return resource|false
      */
     public function getUploadedFileStream(TemporaryUploadedFile $file)
@@ -159,7 +187,16 @@ class ImportWithXlsxAction extends ImportAction
             return $this->convertXlsxToCsvStream($file);
         }
 
+        if ($this->isXlsFile($file)) {
+            return $this->convertXlsToCsvStream($file);
+        }
+
         return parent::getUploadedFileStream($file);
+    }
+
+    protected function isXlsFile(TemporaryUploadedFile $file): bool
+    {
+        return Str::lower($file->getClientOriginalExtension()) === 'xls';
     }
 
     protected function isXlsxFile(TemporaryUploadedFile $file): bool
@@ -196,6 +233,35 @@ class ImportWithXlsxAction extends ImportAction
         }
 
         $xlsxReader->close();
+
+        rewind($csvResource);
+
+        return $csvResource;
+    }
+
+    /**
+     * @return resource
+     */
+    protected function convertXlsToCsvStream(TemporaryUploadedFile $file)
+    {
+        $xlsReader = new XlsReader;
+        $xlsReader->setReadDataOnly(true);
+
+        $spreadsheet = $xlsReader->load($file->getRealPath());
+
+        $csvResource = fopen('php://temp', 'r+');
+
+        if ($csvResource === false) {
+            throw new \RuntimeException('Failed to create temporary CSV stream');
+        }
+
+        $csvWriter = Writer::createFromStream($csvResource);
+
+        foreach ($spreadsheet->getSheet(0)->toArray(null, true, false, false) as $row) {
+            $csvWriter->insertOne($row);
+        }
+
+        $spreadsheet->disconnectWorksheets();
 
         rewind($csvResource);
 

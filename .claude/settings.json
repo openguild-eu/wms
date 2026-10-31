@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(php artisan test *)",
+      "Bash(vendor/bin/phpstan analyse *)",
+      "Bash(composer show *)",
+      "mcp__laravel-boost__search-docs",
+      "Bash(php artisan list *)",
+      "Bash(php artisan list)",
+      "mcp__laravel-boost__application-info",
+      "mcp__laravel-boost__database-query",
+      "Bash(herd php:list)"
+    ]
+  }
+}

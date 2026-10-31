@@ -7,7 +7,7 @@ namespace Modules\Products\Filament\Resources\Products\Pages;
 use Filament\Actions\CreateAction;
 use Filament\Facades\Filament;
 use Filament\Resources\Pages\ListRecords;
-use Modules\Products\Filament\Actions\ImportWithXlsxAction;
+use Modules\Products\Filament\Actions\ImportWithSpreadsheetAction;
 use Modules\Products\Filament\Imports\ProductImporter;
 use Modules\Products\Filament\Resources\Products\ProductResource;
 
@@ -18,7 +18,7 @@ class ListProducts extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            ImportWithXlsxAction::make()
+            ImportWithSpreadsheetAction::make()
                 ->importer(ProductImporter::class)
                 ->options(fn (): array => [
                     'warehouse_id' => Filament::getTenant()?->getKey(),

@@ -66,14 +66,118 @@ navigation group, icon `Heroicon::OutlinedPhoto`, sub-navigation (General/Stock/
   (custom HTML column showing brand + attribute badges), `StockSummaryColumn`
   (custom HTML column showing Stock/Res/Pick/Free badges). No filters, no
   sortable/searchable columns except via the importer/relation manager.
-- Custom import: `Modules\Products\Filament\Actions\ImportWithXlsxAction` (extends
-  `Filament\Actions\ImportAction`, auto-converts `.xlsx` uploads to CSV before
-  Filament's import pipeline runs) + `Modules\Products\Filament\Imports\ProductImporter`.
+- Custom import: `Modules\Products\Filament\Actions\ImportWithSpreadsheetAction`
+  (extends `Filament\Actions\ImportAction`, accepts CSV, `.xlsx` and `.xls`, converts
+  Excel uploads to CSV before Filament's import pipeline runs) +
+  `Modules\Products\Filament\Imports\ProductImporter`. See "Product Import
+  (CSV / XLSX / XLS)" below.
 - Barcode image generation: `App\Http\Controllers\ProductBarcodeDownloadController`
   (route `{tenant}/products/{product}/barcode.png`) uses
   `AgeekDev\Barcode\Facades\Barcode::imageType('png')->generate($barcodeValue)`
   (package is actually `ageekdev/laravel-barcode`, not `geekdev/laravel-barcode` as
   named in project docs — flag this naming discrepancy).
+
+### Product Import (CSV / XLSX / XLS)
+
+**Goal**: users can import products from a CSV, `.xlsx` (Excel 2007+) or `.xls`
+(Excel 97–2003) file through the same import modal. Excel files are converted
+to an in-memory CSV stream, so column mapping, validation, chunking and the
+queued import job all keep using Filament's standard CSV pipeline.
+
+**Implemented** (was: `ImportWithXlsxAction`, `.xlsx` only via OpenSpout, no
+`.xls` support). **Fixed bug**: the `FileUpload` uses
+`->rules($action->getFileValidationRules())`, and
+`Filament\Actions\ImportAction::getFileValidationRules()` adds
+`'extensions:csv,txt'`, so `.xlsx` uploads were rejected by validation. The
+override in step 3 below fixes this, and `ProductImportTest` covers it.
+
+**Dependency** (approved by the user):
+
+```
+composer require phpoffice/phpspreadsheet
+```
+
+Use PhpSpreadsheet **only** for `.xls`. `.xlsx` keeps using
+`OpenSpout\Reader\XLSX\Reader` (`openspout/openspout` 4.32, already installed).
+
+**Action**:
+
+```
+Action: Import Products
+  Component: Modules\Products\Filament\Actions\ImportWithSpreadsheetAction
+             (extends Filament\Actions\ImportAction)
+  Docs: https://filamentphp.com/docs/4.x/actions/import
+  Location: header action in
+            Modules\Products\Filament\Resources\Products\Pages\ListProducts::getHeaderActions()
+  Config: ->importer(ProductImporter::class)
+          ->options(fn (): array => ['warehouse_id' => Filament::getTenant()?->getKey()])
+```
+
+Implementation steps:
+
+1. Rename `app-modules/products/src/Filament/Actions/ImportWithXlsxAction.php` to
+   `ImportWithSpreadsheetAction.php` (class `ImportWithSpreadsheetAction`). Update
+   the import and `::make()` call in `ListProducts`. Keep the existing `setUp()`.
+2. `FileUpload::make('file')->acceptedFileTypes([...])`: keep the current list
+   (it already contains `application/vnd.ms-excel` and
+   `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`) and add
+   `'application/octet-stream'`, because some browsers/OSes send `.xls` that way.
+3. Override `getFileValidationRules(): array`: call
+   `parent::getFileValidationRules()` and replace the `'extensions:csv,txt'`
+   entry with `'extensions:csv,txt,xls,xlsx'`. Keep every other rule, including
+   the duplicate-header closure. That closure calls `$this->getUploadedFileStream()`,
+   so it already validates the converted CSV.
+4. `getUploadedFileStream(TemporaryUploadedFile $file)` dispatches on format:
+   - `isXlsxFile($file)` → `convertXlsxToCsvStream($file)` (existing, unchanged)
+   - `isXlsFile($file)` → `convertXlsToCsvStream($file)` (new)
+   - otherwise → `parent::getUploadedFileStream($file)`
+5. New `protected function isXlsFile(TemporaryUploadedFile $file): bool`: returns
+   `Str::lower($file->getClientOriginalExtension()) === 'xls'`. Check the
+   **extension only**. Windows browsers also send `application/vnd.ms-excel` for
+   `.csv` files, so this MIME type cannot be used to detect `.xls`.
+6. New `protected function convertXlsToCsvStream(TemporaryUploadedFile $file)`
+   (PHPDoc `@return resource`):
+   - `$reader = new PhpOffice\PhpSpreadsheet\Reader\Xls; $reader->setReadDataOnly(true);`
+   - `$spreadsheet = $reader->load($file->getRealPath());`
+   - Open `php://temp` (`r+`). Throw `\RuntimeException('Failed to create temporary CSV stream')`
+     on `false`, the same as the xlsx path.
+   - `League\Csv\Writer::createFromStream($csvResource)`. Insert each row of
+     `$spreadsheet->getSheet(0)->toArray(null, true, false, false)` with
+     `insertOne()`. Use the first sheet only, the same as the xlsx path.
+   - `$spreadsheet->disconnectWorksheets();`, `rewind($csvResource)`, return it.
+7. No change is needed in the action callback. `ImportAction`'s action closure
+   reads the file through `getUploadedFileStream()`, so the queued import
+   receives the converted CSV.
+
+**Importer**: `Modules\Products\Filament\Imports\ProductImporter` is unchanged.
+After conversion the file format no longer matters.
+
+**Translations**: no new strings. All labels use existing
+`filament-actions::import.*` keys.
+
+**Tests** — `tests/Feature/ProductImportTest.php` (Pest, created with
+`php artisan make:test --pest ProductImportTest`; follow the warehouse/tenant
+setup in `tests/Feature/PurchaseOrderImportTest.php`). Build fixtures inside
+each test in a temp dir and wrap them in `TemporaryUploadedFile`/`UploadedFile::fake()`
+with the real file contents:
+
+- `.xls` conversion: write a sheet with headers `reference_code, name, barcode`
+  and two rows using `PhpOffice\PhpSpreadsheet\Writer\Xls`. Assert that
+  `ImportWithSpreadsheetAction::make()->getUploadedFileStream($file)` returns a
+  CSV whose header and rows match the sheet.
+- `.xlsx` conversion: the same assertion with a fixture written by
+  `OpenSpout\Writer\XLSX\Writer`.
+- CSV passthrough: a `.csv` upload returns the original contents unchanged
+  (parent path).
+- Validation: `.xls` and `.xlsx` uploads pass the rules from
+  `getFileValidationRules()` (`Validator::make`). A `.pdf` upload fails the
+  `extensions` rule. This is the regression test for the `extensions:csv,txt` bug.
+
+**Verification** (implementing agent): `php artisan lang:extract`,
+`composer analyse`, `composer lint`, `vendor/bin/pint --dirty --format agent`,
+`php artisan test --compact tests/Feature/ProductImportTest.php`. Then manually
+import one `.xls` and one `.xlsx` file from the Products list page and check the
+products are created in the current warehouse.
 
 ## Stock
 
