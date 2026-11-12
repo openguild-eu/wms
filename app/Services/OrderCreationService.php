@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Exceptions\Api\InsufficientStockException;
 use App\Models\Warehouse;
 use Illuminate\Support\Facades\DB;
+use Modules\Backorders\Services\BackorderCreationService;
 use Modules\Clients\Models\Client;
 use Modules\Orders\Models\Order;
 use Modules\Orders\Models\OrderProduct;
+use Modules\Orders\Models\OrderStatus;
 use Modules\Products\Models\Product;
 use Modules\Products\Models\StockProduct;
 
@@ -31,7 +32,9 @@ class OrderCreationService
             }
         }
 
-        $products = $this->loadAndValidateStock($warehouse, $data['items']);
+        $stockCheck = $this->loadAndValidateStock($warehouse, $data['items']);
+        $products = $stockCheck['products'];
+        $shortfalls = $stockCheck['shortfalls'];
 
         $client = $this->findOrCreateClient($warehouse, $data['client']);
 
@@ -79,6 +82,24 @@ class OrderCreationService
             return $order;
         });
 
+        $intendedOrderStatusId = (int) $data['order_status_id'];
+        $orderStatusId = $intendedOrderStatusId;
+
+        if ($shortfalls !== []) {
+            $backorderedStatus = OrderStatus::query()
+                ->where('warehouse_id', $warehouse->id)
+                ->where('name', 'Backordered')
+                ->first();
+
+            if (! $backorderedStatus) {
+                throw new \RuntimeException(
+                    "Warehouse #{$warehouse->id} is missing its 'Backordered' order status - run the backorders module migrations."
+                );
+            }
+
+            $orderStatusId = $backorderedStatus->id;
+        }
+
         // Deliberately a separate write from the transaction above: OrderObserver
         // only dispatches OrderStatusChanged from its updated() hook, guarded by
         // wasChanged('order_statuses_id') - setting the status in the same
@@ -86,19 +107,23 @@ class OrderCreationService
         // insert), and setting it inside the transaction above prevents the
         // ShouldQueueAfterCommit listener from ever running within a test's
         // wrapping transaction. This must stay a genuine post-transaction update.
-        $order->update(['order_statuses_id' => $data['order_status_id']]);
+        $order->update(['order_statuses_id' => $orderStatusId]);
+
+        if ($shortfalls !== []) {
+            app(BackorderCreationService::class)->createForOrder($order, $shortfalls, $intendedOrderStatusId);
+        }
 
         return $order;
     }
 
     /**
      * @param  array<int, array{product_id: int, quantity: int}>  $items
-     * @return array<int, Product>
+     * @return array{products: array<int, Product>, shortfalls: array<int, array{product_id: int, requested: int, available: int}>}
      */
     private function loadAndValidateStock(Warehouse $warehouse, array $items): array
     {
         $products = [];
-        $insufficientItems = [];
+        $shortfalls = [];
 
         foreach ($items as $item) {
             if (! array_key_exists($item['product_id'], $products)) {
@@ -119,7 +144,7 @@ class OrderCreationService
             $available = $stockProduct instanceof StockProduct ? $stockProduct->free_on_stock_quantity : 0;
 
             if ($item['quantity'] > $available) {
-                $insufficientItems[] = [
+                $shortfalls[] = [
                     'product_id' => $product->id,
                     'requested' => $item['quantity'],
                     'available' => $available,
@@ -127,11 +152,10 @@ class OrderCreationService
             }
         }
 
-        if ($insufficientItems !== []) {
-            throw new InsufficientStockException($insufficientItems);
-        }
-
-        return $products;
+        return [
+            'products' => $products,
+            'shortfalls' => $shortfalls,
+        ];
     }
 
     /**

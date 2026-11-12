@@ -160,8 +160,15 @@ it('is idempotent when the same custom_order_id is submitted twice', function ()
     $this->assertDatabaseCount('orders', 1);
 });
 
-it('rejects an order when requested quantity exceeds available stock', function () {
-    [, $token, $product, , $status] = createApiOrderContext(onStockQuantity: 1);
+it('backorders an order when requested quantity exceeds available stock', function () {
+    [$warehouse, $token, $product, , $status] = createApiOrderContext(onStockQuantity: 1);
+
+    $backorderedStatus = OrderStatus::query()->create([
+        'warehouse_id' => $warehouse->id,
+        'name' => 'Backordered',
+        'color' => '#F59E0B',
+        'on_hold' => true,
+    ]);
 
     $payload = validOrderPayload($product, $status, [
         'items' => [
@@ -171,19 +178,29 @@ it('rejects an order when requested quantity exceeds available stock', function 
 
     $response = $this->postJson('/api/v1/orders', $payload, apiOrderHeaders($token));
 
-    $response->assertStatus(422);
-    $response->assertJson([
-        'message' => 'Insufficient stock for one or more items.',
-        'errors' => [
-            'items' => [
-                ['product_id' => $product->id, 'requested' => 5, 'available' => 1],
-            ],
-        ],
+    $response->assertCreated();
+
+    $orderId = $response->json('data.id');
+
+    $this->assertDatabaseHas('orders', [
+        'id' => $orderId,
+        'warehouse_id' => $warehouse->id,
+        'order_statuses_id' => $backorderedStatus->id,
     ]);
 
-    $this->assertDatabaseCount('orders', 0);
-    $this->assertDatabaseCount('order_products', 0);
-    $this->assertDatabaseCount('clients', 0);
+    $this->assertDatabaseHas('order_products', [
+        'order_id' => $orderId,
+        'product_id' => $product->id,
+        'quantity' => 5,
+    ]);
+
+    $this->assertDatabaseHas('backorders', [
+        'order_id' => $orderId,
+        'product_id' => $product->id,
+        'quantity_ordered' => 5,
+        'quantity_fulfilled' => 0,
+        'intended_order_statuses_id' => $status->id,
+    ]);
 });
 
 it('allows a stock_unlimited product to exceed available stock', function () {

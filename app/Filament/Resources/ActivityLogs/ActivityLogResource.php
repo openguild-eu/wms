@@ -10,6 +10,7 @@ use App\Models\Warehouse;
 use Filament\Facades\Filament;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Modules\Backorders\Models\Backorder;
 use Modules\Brands\Models\Brand;
 use Modules\Clients\Models\Client;
 use Modules\Orders\Models\Order;
@@ -49,6 +50,7 @@ class ActivityLogResource extends BaseActivityLogResource
             $query->whereHasMorph('subject', [
                 ApiKey::class,
                 AttributeGroup::class,
+                Backorder::class,
                 Brand::class,
                 Client::class,
                 Order::class,

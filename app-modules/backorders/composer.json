@@ -1,0 +1,27 @@
+{
+	"name": "modules/backorders",
+	"description": "",
+	"type": "library",
+	"version": "1.0",
+	"license": "proprietary",
+	"require": {
+		"filament/filament": "^4.0",
+		"laravel/framework": "^12.0"
+	},
+	"autoload": {
+		"psr-4": {
+			"Modules\\Backorders\\": "src/",
+			"Modules\\Backorders\\Tests\\": "tests/",
+			"Modules\\Backorders\\Database\\Factories\\": "database/factories/",
+			"Modules\\Backorders\\Database\\Seeders\\": "database/seeders/"
+		}
+	},
+	"minimum-stability": "stable",
+	"extra": {
+		"laravel": {
+			"providers": [
+				"Modules\\Backorders\\Providers\\BackordersServiceProvider"
+			]
+		}
+	}
+}

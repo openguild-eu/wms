@@ -428,6 +428,18 @@ class TenantSeeder extends Seeder
                 'cancelled' => false,
             ],
             [
+                'name' => 'Backordered',
+                'color' => '#F59E0B',
+                'generate_picklist' => false,
+                'reserve_stock' => false,
+                'reduce_stock' => false,
+                'concepted' => false,
+                'completed' => false,
+                'on_hold' => true,
+                'delivered' => false,
+                'cancelled' => false,
+            ],
+            [
                 'name' => 'Processing',
                 'color' => '#F59E0B',
                 'generate_picklist' => false,
