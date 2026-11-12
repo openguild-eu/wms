@@ -58,6 +58,7 @@ class AdminPanelProvider extends PanelProvider
                     ->navigationGroup('Settings'),
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
+            ->discoverResources(in: base_path('app-modules/backorders/src/Filament/Resources'), for: 'Modules\Backorders\Filament\Resources')
             ->discoverResources(in: base_path('app-modules/brands/src/Filament/Resources'), for: 'Modules\Brands\Filament\Resources')
             ->discoverResources(in: base_path('app-modules/clients/src/Filament/Resources'), for: 'Modules\Clients\Filament\Resources')
             ->discoverResources(in: base_path('app-modules/notes/src/Filament/Resources'), for: 'Modules\Notes\Filament\Resources')

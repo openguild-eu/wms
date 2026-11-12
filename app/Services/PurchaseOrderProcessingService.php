@@ -6,6 +6,7 @@ namespace App\Services;
 
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Modules\Backorders\Services\BackorderFulfillmentService;
 use Modules\Orders\Exceptions\PurchaseOrderStatusLockedException;
 use Modules\Orders\Models\PurchaseOrder;
 use Modules\Orders\Models\PurchaseOrderStatus;
@@ -15,6 +16,7 @@ class PurchaseOrderProcessingService
 {
     public function __construct(
         private readonly OrderStatusTransitionService $orderStatusTransitionService,
+        private readonly BackorderFulfillmentService $backorderFulfillmentService,
     ) {}
 
     /**
@@ -124,6 +126,10 @@ class PurchaseOrderProcessingService
         });
 
         $this->orderStatusTransitionService->refreshReservedStockForProductIds(
+            $productCounts->keys()->all()
+        );
+
+        $this->backorderFulfillmentService->fulfillForProducts(
             $productCounts->keys()->all()
         );
     }
