@@ -26,6 +26,18 @@ class OrdersServiceProvider extends ServiceProvider
 
         Event::listen(OrderStatusChanged::class, ProcessOrderStatusTransition::class);
 
+        // DispatchOrderCreatedWebhook, DispatchOrderStatusChangedWebhook, and
+        // DispatchPurchaseOrderStatusChangedWebhook are deliberately *not*
+        // registered here. app/Listeners is auto-discovered by Laravel (see
+        // bootstrap/app.php -> Application::configure()'s default
+        // ->withEvents(), which is always applied) via reflection on each
+        // listener's handle() method - they get attached automatically. The
+        // explicit Event::listen() above for ProcessOrderStatusTransition is
+        // actually redundant with that same auto-discovery (verified via
+        // Event::getRawListeners()): it only goes unnoticed because that
+        // listener's side effects are idempotent. Webhook dispatch is not
+        // idempotent, so registering these listeners both ways would send
+        // every webhook twice.
         Order::observe(OrderObserver::class);
         OrderProduct::observe(OrderProductObserver::class);
         PurchaseOrder::observe(PurchaseOrderObserver::class);

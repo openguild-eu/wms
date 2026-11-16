@@ -7,6 +7,7 @@ namespace App\Services;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Modules\Backorders\Services\BackorderFulfillmentService;
+use Modules\Orders\Events\PurchaseOrderStatusChanged;
 use Modules\Orders\Exceptions\PurchaseOrderStatusLockedException;
 use Modules\Orders\Models\PurchaseOrder;
 use Modules\Orders\Models\PurchaseOrderStatus;
@@ -34,8 +35,11 @@ class PurchaseOrderProcessingService
             return;
         }
 
+        $previousStatus = $purchaseOrder->status;
         $purchaseOrder->status = PurchaseOrderStatus::Scanned;
         $purchaseOrder->save();
+
+        $this->dispatchStatusChanged($purchaseOrder, $previousStatus);
     }
 
     public function markPurchased(PurchaseOrder $purchaseOrder, Carbon $expectedDeliveryDate): void
@@ -46,9 +50,12 @@ class PurchaseOrderProcessingService
             );
         }
 
+        $previousStatus = $purchaseOrder->status;
         $purchaseOrder->expected_delivery_date = $expectedDeliveryDate;
         $purchaseOrder->status = PurchaseOrderStatus::Purchased;
         $purchaseOrder->save();
+
+        $this->dispatchStatusChanged($purchaseOrder, $previousStatus);
 
         // The PO's products just became deferral-eligible - refresh reserved
         // stock for other client orders that may now be able to defer to it.
@@ -67,8 +74,11 @@ class PurchaseOrderProcessingService
             );
         }
 
+        $previousStatus = $purchaseOrder->status;
         $purchaseOrder->status = PurchaseOrderStatus::Received;
         $purchaseOrder->save();
+
+        $this->dispatchStatusChanged($purchaseOrder, $previousStatus);
     }
 
     /**
@@ -82,6 +92,8 @@ class PurchaseOrderProcessingService
                 "Purchase order #{$purchaseOrder->id} cannot be marked processed from status {$purchaseOrder->status->value}."
             );
         }
+
+        $previousStatus = $purchaseOrder->status;
 
         $productCounts = DB::table('purchase_orders_products')
             ->where('purchase_order_id', $purchaseOrder->id)
@@ -125,6 +137,13 @@ class PurchaseOrderProcessingService
             $purchaseOrder->save();
         });
 
+        // Dispatched here, after the transaction returns, rather than inside
+        // the closure above - mirrors OrderCreationService::create()'s
+        // post-transaction status write, giving the ShouldDispatchAfterCommit
+        // event a clean, already-established post-transaction point to fire
+        // from instead of nesting it inside the stock-mutation transaction.
+        $this->dispatchStatusChanged($purchaseOrder, $previousStatus, $causerId);
+
         $this->orderStatusTransitionService->refreshReservedStockForProductIds(
             $productCounts->keys()->all()
         );
@@ -142,13 +161,28 @@ class PurchaseOrderProcessingService
             );
         }
 
+        $previousStatus = $purchaseOrder->status;
         $purchaseOrder->status = PurchaseOrderStatus::Cancelled;
         $purchaseOrder->save();
+
+        $this->dispatchStatusChanged($purchaseOrder, $previousStatus);
 
         // No stock reversal needed - nothing is mutated before Processed.
         // But a cancelled Purchased PO stops counting as an incoming batch,
         // so other client orders' reserved_quantity must be recomputed.
         $this->refreshProductStock($purchaseOrder);
+    }
+
+    private function dispatchStatusChanged(PurchaseOrder $purchaseOrder, PurchaseOrderStatus $previousStatus, ?int $causerId = null): void
+    {
+        $causerId ??= auth()->id();
+
+        PurchaseOrderStatusChanged::dispatch(
+            $purchaseOrder->withoutRelations(),
+            $previousStatus,
+            $purchaseOrder->status,
+            is_int($causerId) ? $causerId : null,
+        );
     }
 
     private function refreshProductStock(PurchaseOrder $purchaseOrder): void

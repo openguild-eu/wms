@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\Backorders\Services;
 
 use Modules\Backorders\Enums\BackorderStatus;
+use Modules\Backorders\Events\BackorderCancelled;
 use Modules\Backorders\Models\Backorder;
 use Modules\Orders\Models\Order;
 
@@ -21,15 +22,20 @@ class BackorderCancellationService
      */
     public function cancelForOrder(Order $order): void
     {
+        $causerId = auth()->id();
+        $causerId = is_int($causerId) ? $causerId : null;
+
         Backorder::query()
             ->where('order_id', $order->getKey())
             ->whereIn('status', [BackorderStatus::Open, BackorderStatus::PartiallyFulfilled])
             ->get()
-            ->each(function (Backorder $backorder): void {
+            ->each(function (Backorder $backorder) use ($causerId): void {
                 $backorder->update([
                     'status' => BackorderStatus::Cancelled,
                     'resolved_at' => now(),
                 ]);
+
+                BackorderCancelled::dispatch($backorder->withoutRelations(), $causerId);
             });
     }
 }

@@ -7,6 +7,7 @@ namespace Modules\Backorders\Services;
 use App\Services\OrderStatusTransitionService;
 use Illuminate\Support\Facades\DB;
 use Modules\Backorders\Enums\BackorderStatus;
+use Modules\Backorders\Events\BackorderFulfilled;
 use Modules\Backorders\Models\Backorder;
 use Modules\Orders\Models\OrderStatus;
 use Modules\Products\Models\StockProduct;
@@ -70,6 +71,9 @@ class BackorderFulfillmentService
                 $backorder->save();
 
                 if ($backorder->status === BackorderStatus::Fulfilled) {
+                    $causerId = auth()->id();
+                    BackorderFulfilled::dispatch($backorder->withoutRelations(), is_int($causerId) ? $causerId : null);
+
                     $this->releaseOrderIfFullyFulfilled($backorder, $productId);
                     $stockProduct->refresh();
                 } else {
