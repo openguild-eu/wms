@@ -72,6 +72,14 @@ class BackorderFulfillmentService
                 if ($backorder->status === BackorderStatus::Fulfilled) {
                     $this->releaseOrderIfFullyFulfilled($backorder, $productId);
                     $stockProduct->refresh();
+                } else {
+                    // No order status change happened (the backorder is only
+                    // partially filled), so there is nothing for the recalc
+                    // in releaseOrderIfFullyFulfilled() to pick up. Without
+                    // this, the next backorder in the FIFO loop would still
+                    // see the pre-allocation free_on_stock_quantity and get
+                    // promised the same physical units all over again.
+                    $stockProduct->free_on_stock_quantity -= $allocated;
                 }
             }
         });
