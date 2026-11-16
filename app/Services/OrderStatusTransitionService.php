@@ -6,6 +6,7 @@ namespace App\Services;
 
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\DB;
+use Modules\Backorders\Services\BackorderCancellationService;
 use Modules\Orders\Models\Order;
 use Modules\Orders\Models\OrderProduct;
 use Modules\Orders\Models\OrderStatus;
@@ -54,6 +55,7 @@ class OrderStatusTransitionService
 
         if ($newStatus->cancelled && ! ($previousStatus && $previousStatus->cancelled)) {
             $this->releaseReservedStock($order);
+            app(BackorderCancellationService::class)->cancelForOrder($order);
         }
     }
 
