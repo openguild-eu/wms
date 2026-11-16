@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\ApiKey;
 use App\Models\Subdomain;
 use App\Models\Warehouse;
+use App\Models\WebhookEndpoint;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -27,6 +28,7 @@ use Modules\Settings\Filament\Resources\ApiKeys\Pages\ManageApiKeyActivities;
 use Modules\Settings\Filament\Resources\AttributeGroups\Pages\ManageAttributeGroupActivities;
 use Modules\Settings\Filament\Resources\VatRates\Pages\ManageVatRateActivities;
 use Modules\Settings\Filament\Resources\Warehouses\Pages\ManageWarehouseActivities;
+use Modules\Settings\Filament\Resources\WebhookEndpoints\Pages\ManageWebhookEndpointActivities;
 use Modules\Settings\Models\AttributeGroup;
 use Modules\Settings\Models\VatRate;
 use Modules\Users\Filament\Resources\Users\Pages\ManageUserActivities;
@@ -98,6 +100,13 @@ it('renders the History tab without error for every audited resource', function 
         'warehouse_id' => $warehouse->id,
         'name' => 'Storefront Key',
         'key_hash' => hash('sha256', 'secret-token'),
+    ])],
+    'WebhookEndpoint' => [ManageWebhookEndpointActivities::class, fn (Warehouse $warehouse) => WebhookEndpoint::query()->create([
+        'warehouse_id' => $warehouse->id,
+        'name' => 'Order sync',
+        'url' => 'https://example.com/webhook',
+        'secret' => 'whsec_secret-token',
+        'subscribed_events' => ['order.created'],
     ])],
     'VatRate' => [ManageVatRateActivities::class, fn (Warehouse $warehouse) => VatRate::query()->forceCreate([
         'warehouse_id' => $warehouse->id,
@@ -224,6 +233,26 @@ it('excludes the api key hash from logged attribute changes', function () {
 
     expect($activity->attribute_changes->get('attributes', []))
         ->not->toHaveKey('key_hash')
+        ->toHaveKey('name');
+});
+
+it('excludes the webhook secret from logged attribute changes', function () {
+    [, $warehouse] = createActivityLogHistoryContext();
+
+    $webhookEndpoint = WebhookEndpoint::query()->create([
+        'warehouse_id' => $warehouse->id,
+        'name' => 'Order sync',
+        'url' => 'https://example.com/webhook',
+        'secret' => 'whsec_secret-token',
+        'subscribed_events' => ['order.created'],
+    ]);
+
+    $webhookEndpoint->update(['secret' => 'whsec_rotated-token', 'name' => 'Order sync renamed']);
+
+    $activity = $webhookEndpoint->activitiesAsSubject()->latest('id')->first();
+
+    expect($activity->attribute_changes->get('attributes', []))
+        ->not->toHaveKey('secret')
         ->toHaveKey('name');
 });
 
