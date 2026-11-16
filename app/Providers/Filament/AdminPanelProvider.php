@@ -10,6 +10,7 @@ use App\Filament\Pages\WarehouseMap;
 use App\Http\Middleware\IdentifySubdomain;
 use App\Models\Warehouse;
 use Filament\Auth\MultiFactor\App\AppAuthentication;
+use Filament\FontProviders\GoogleFontProvider;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -18,7 +19,6 @@ use Filament\Navigation\NavigationGroup;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Assets\Js;
-use Filament\Support\Colors\Color;
 use Filament\Widgets\AccountWidget;
 use Filament\Widgets\FilamentInfoWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -36,7 +36,18 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('/')
+            ->viteTheme('resources/css/filament/admin/theme.css')
             ->brandName('Open Warehouse Management System')
+            ->brandLogo(fn () => view('filament.admin.brand-logo', [
+                'logo' => asset('images/brand/openguild-logo-color.svg'),
+                'textColor' => 'rgba(15, 27, 61, 0.6)',
+            ]))
+            ->darkModeBrandLogo(fn () => view('filament.admin.brand-logo', [
+                'logo' => asset('images/brand/openguild-logo-white.svg'),
+                'textColor' => 'rgba(255, 255, 255, 0.7)',
+            ]))
+            ->brandLogoHeight('2rem')
+            ->favicon(asset('images/brand/openguild-app-icon-32.png'))
             ->profile()
             ->multiFactorAuthentication([
                 AppAuthentication::make(),
@@ -47,8 +58,10 @@ class AdminPanelProvider extends PanelProvider
             ->login()
             ->authGuard('web')
             ->colors([
-                'primary' => Color::Amber,
+                'primary' => '#F2B134',
+                'info' => '#2547D0',
             ])
+            ->font('Manrope', provider: GoogleFontProvider::class)
             ->databaseNotifications()
             ->assets([
                 Js::make('onscan', base_path('node_modules/onscan.js/onscan.min.js')),
