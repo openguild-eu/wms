@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\Orders\Observers;
 
 use App\Models\Warehouse;
+use Modules\Orders\Events\OrderCreated;
 use Modules\Orders\Events\OrderStatusChanged;
 use Modules\Orders\Exceptions\OrderStatusLockedException;
 use Modules\Orders\Models\Order;
@@ -48,6 +49,16 @@ class OrderObserver
 
         $order->generated_year_order_id ??= $nextGeneratedYearOrderId;
         $order->generated_custom_order_id ??= "ORDER{$prefix}{$year}{$order->generated_year_order_id}";
+    }
+
+    /**
+     * Handle the Order "created" event.
+     */
+    public function created(Order $order): void
+    {
+        $causerId = auth()->id();
+
+        OrderCreated::dispatch($order->withoutRelations(), is_int($causerId) ? $causerId : null);
     }
 
     /**

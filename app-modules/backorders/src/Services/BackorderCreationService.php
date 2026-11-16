@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\Backorders\Services;
 
 use Modules\Backorders\Enums\BackorderStatus;
+use Modules\Backorders\Events\BackorderCreated;
 use Modules\Backorders\Models\Backorder;
 use Modules\Orders\Models\Order;
 
@@ -17,6 +18,9 @@ class BackorderCreationService
     {
         $order->loadMissing('products');
 
+        $causerId = auth()->id();
+        $causerId = is_int($causerId) ? $causerId : null;
+
         foreach ($shortfalls as $shortfall) {
             $orderProduct = $order->products->firstWhere('product_id', $shortfall['product_id']);
 
@@ -24,7 +28,7 @@ class BackorderCreationService
                 continue;
             }
 
-            Backorder::query()->create([
+            $backorder = Backorder::query()->create([
                 'warehouse_id' => $order->warehouse_id,
                 'order_id' => $order->id,
                 'order_product_id' => $orderProduct->id,
@@ -34,6 +38,8 @@ class BackorderCreationService
                 'quantity_fulfilled' => 0,
                 'status' => BackorderStatus::Open,
             ]);
+
+            BackorderCreated::dispatch($backorder->withoutRelations(), $causerId);
         }
     }
 }
