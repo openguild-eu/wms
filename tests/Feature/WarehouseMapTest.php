@@ -6,7 +6,6 @@ use App\Filament\Pages\WarehouseMap;
 use App\Models\Subdomain;
 use App\Models\Warehouse;
 use Filament\Facades\Filament;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Livewire\Livewire;
 use Modules\Products\Models\StockLocation;
 use Modules\Users\Models\User;
@@ -161,9 +160,11 @@ it('404s when saving the layout of a location belonging to a different warehouse
         'rank' => 1,
     ]);
 
-    expect(fn () => Livewire::test(WarehouseMap::class)
-        ->call('saveLocationLayout', $locationInWarehouseB->id, 1.0, 1.0, 1.0, 1.0))
-        ->toThrow(ModelNotFoundException::class);
+    Livewire::test(WarehouseMap::class)
+        ->call('saveLocationLayout', $locationInWarehouseB->id, 1.0, 1.0, 1.0, 1.0)
+        ->assertNotFound();
+
+    expect($locationInWarehouseB->refresh()->x)->toBeNull();
 });
 
 it('does not add a new activity log entry when saving identical layout values twice', function () {
@@ -261,11 +262,17 @@ it('404s when removing a location belonging to a different warehouse from the ma
         'warehouse_id' => $warehouseB->id,
         'name' => 'Foreign location',
         'rank' => 1,
+        'x' => 2.0,
+        'y' => 3.0,
+        'width' => 1.0,
+        'height' => 1.0,
     ]);
 
-    expect(fn () => Livewire::test(WarehouseMap::class)
-        ->call('removeLocationFromMap', $locationInWarehouseB->id))
-        ->toThrow(ModelNotFoundException::class);
+    Livewire::test(WarehouseMap::class)
+        ->call('removeLocationFromMap', $locationInWarehouseB->id)
+        ->assertNotFound();
+
+    expect((float) $locationInWarehouseB->refresh()->x)->toBe(2.0);
 });
 
 it('lists unplaced locations in the sidebar', function () {
@@ -401,9 +408,9 @@ it('rejects a route containing a location from a different warehouse without cha
 
     $foreign = StockLocation::query()->create(['warehouse_id' => $warehouseB->id, 'name' => 'Foreign', 'rank' => 1]);
 
-    expect(fn () => Livewire::test(WarehouseMap::class)
-        ->call('saveRoute', [$ownSecond->id, $foreign->id]))
-        ->toThrow(ModelNotFoundException::class);
+    Livewire::test(WarehouseMap::class)
+        ->call('saveRoute', [$ownSecond->id, $foreign->id])
+        ->assertNotFound();
 
     expect($own->refresh()->rank)->toBe(1)
         ->and($ownSecond->refresh()->rank)->toBe(2);
