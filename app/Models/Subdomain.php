@@ -13,6 +13,8 @@ class Subdomain extends Model
     protected $fillable = [
         'subdomain',
         'name',
+        'is_demo',
+        'demo_expires_at',
     ];
 
     /**
@@ -29,5 +31,13 @@ class Subdomain extends Model
     public function warehouses(): HasMany
     {
         return $this->hasMany(Warehouse::class, 'subdomain_id');
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'is_demo' => 'boolean',
+            'demo_expires_at' => 'datetime',
+        ];
     }
 }
