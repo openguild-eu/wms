@@ -91,7 +91,8 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->navigationGroups([
                 NavigationGroup::make()
-                    ->label('Settings'),
+                    ->label('Settings')
+                    ->collapsed(),
             ])
             ->middleware([
                 IdentifySubdomain::class,
