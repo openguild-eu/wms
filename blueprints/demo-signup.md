@@ -1,5 +1,12 @@
 # Blueprint: Self-Service WMS Demo (Signup + 48h Auto-Reset)
 
+> **Implemented.** `wms` core changes are committed in this repo
+> (`database/seeders/TenantSeeder.php`, `app/Models/Subdomain.php`).
+> `app-modules/demo` has been built, tested (289/289 passing), and
+> relocated to `openguild-eu/wms-demo`. Three corrections were found
+> during implementation and are called out inline below where they
+> change this plan's original text — search for "**Correction**".
+
 ## Status & Scope
 
 This plan spans **two repositories**:
@@ -110,13 +117,25 @@ Change: Promote the six per-warehouse seeding methods from `private` to
 
   public function seedWarehouse(Warehouse $warehouse): void
   {
-      $this->seedVatRates($warehouse);
-      $this->seedWarehouseDefaults($warehouse);
-      $this->seedClients($warehouse);
-      $this->seedOrderStatuses($warehouse);
-      $this->seedOrders($warehouse);
-      $this->seedPicklists($warehouse);
+      Model::unguarded(function () use ($warehouse) {
+          $this->seedVatRates($warehouse);
+          $this->seedWarehouseDefaults($warehouse);
+          $this->seedClients($warehouse);
+          $this->seedOrderStatuses($warehouse);
+          $this->seedOrders($warehouse);
+          $this->seedPicklists($warehouse);
+      });
   }
+
+  Correction: wrap the six calls in `Model::unguarded(...)`
+  (`Illuminate\Database\Eloquent\Model`). `php artisan db:seed` unguards
+  Eloquent mass assignment automatically for the duration of a seeder run,
+  which is why these methods work fine inside `run()` today — but a direct
+  call like `(new TenantSeeder)->seedWarehouse($warehouse)` from outside
+  `db:seed` does not get that automatic unguard, and the first insert
+  (`VatRate`, writing `warehouse_id` which isn't in `VatRate::$fillable`)
+  throws a `MassAssignmentException` without it. This has no effect on
+  `run()`'s existing behavior.
 
   Do not change `run()`'s behavior or the six methods' internal logic at all
   — this is a pure visibility/composition change so `wms-demo` can call
@@ -172,7 +191,7 @@ Model: App\Models\Subdomain  (lives in wms core — demo module may not edit
   as a change the demo module's own build applies to its working copy of
   Subdomain.php, analogous to the migration itself)
   Add casts() method (Subdomain currently has none):
-    public function casts(): array
+    protected function casts(): array
     {
         return [
             'is_demo' => 'boolean',
@@ -180,6 +199,9 @@ Model: App\Models\Subdomain  (lives in wms core — demo module may not edit
         ];
     }
   Place casts() as the last method, per this project's model convention.
+  Correction: `protected`, not `public` — matches the actual convention in
+  `App\Models\Warehouse::casts()` and `Modules\Users\Models\User::casts()`,
+  both `protected`.
   Add fillable entries: 'is_demo', 'demo_expires_at' (alongside existing
   'subdomain', 'name').
 ```
@@ -229,6 +251,19 @@ globally before this (registered in `$middleware->web(append: [...])` in
 the request through (it only blocks `login`/`logout`/`filament*` paths on the
 central domain, per `app/Http/Middleware/IdentifySubdomain.php:34-42`).
 
+> **Correction**: `internachi/modular`'s `RoutesPlugin` auto-loads every
+> `app-modules/*/routes/*.php` file unconditionally (bare, with no group
+> around it) — this happens regardless of anything the service provider
+> does. That means the `web`+`domain()` wrapping **must** live here, in
+> `demo-routes.php` itself (as shown above), and must **not** also be
+> applied by `DemoServiceProvider::boot()` (the "Service Provider" section
+> below originally showed both — doing so registers the routes twice: once
+> correctly wrapped via the module auto-load, and once more, unwrapped, via
+> the provider's own `Route::...->group(__DIR__.'/../../routes/demo-routes.php')`
+> call, which defeats the domain/`web` restriction for that second copy).
+> The Service Provider section below has been corrected to remove all route
+> registration.
+
 ### Service Provider
 
 ```
@@ -244,10 +279,6 @@ class DemoServiceProvider extends ServiceProvider
         $this->loadMigrationsFrom(__DIR__.'/../../database/migrations');
         $this->loadViewsFrom(__DIR__.'/../../resources/views', 'demo');
 
-        Route::middleware('web')
-            ->domain(config('app.central_domain'))
-            ->group(__DIR__.'/../../routes/demo-routes.php');
-
         Event::listen(Login::class, ResetExpiredDemoSubdomain::class);
 
         Schedule::command(PruneAbandonedDemoSubdomains::class)->daily();
@@ -255,9 +286,13 @@ class DemoServiceProvider extends ServiceProvider
 }
 ```
 
+> **Correction**: no route registration here — see the correction note
+> under "Routes" above. `internachi/modular` loads `demo-routes.php`
+> automatically; the provider must not load or wrap it a second time.
+
 Full imports needed: `Illuminate\Support\ServiceProvider`,
-`Illuminate\Support\Facades\Route`, `Illuminate\Support\Facades\Event`,
-`Illuminate\Support\Facades\Schedule`, `Illuminate\Auth\Events\Login`,
+`Illuminate\Support\Facades\Event`, `Illuminate\Support\Facades\Schedule`,
+`Illuminate\Auth\Events\Login`,
 `Modules\Demo\Listeners\ResetExpiredDemoSubdomain`,
 `Modules\Demo\Console\Commands\PruneAbandonedDemoSubdomains`.
 
@@ -293,11 +328,12 @@ public function store(Request $request): RedirectResponse
     ]);
 
     $slug = $this->generateUniqueSubdomainSlug($data['company_name']);
+    $companyName = $this->generateUniqueCompanyName($data['company_name']);
 
-    $subdomain = DB::transaction(function () use ($data, $slug) {
+    $subdomain = DB::transaction(function () use ($data, $slug, $companyName) {
         $subdomain = Subdomain::create([
             'subdomain' => $slug,
-            'name' => $data['company_name'],
+            'name' => $companyName,
             'is_demo' => true,
             'demo_expires_at' => now()->addHours(48),
         ]);
@@ -325,7 +361,7 @@ public function store(Request $request): RedirectResponse
         return $subdomain;
     });
 
-    $user = $subdomain->users()->first();
+    $user = $subdomain->users()->firstOrFail();
 
     Auth::guard('web')->login($user);
 
@@ -344,7 +380,36 @@ private function generateUniqueSubdomainSlug(string $companyName): string
 
     return $candidate;
 }
+
+private function generateUniqueCompanyName(string $companyName): string
+{
+    if (! Subdomain::where('name', $companyName)->exists()) {
+        return $companyName;
+    }
+
+    $suffix = 2;
+
+    do {
+        $candidate = "{$companyName} ({$suffix})";
+        $suffix++;
+    } while (Subdomain::where('name', $candidate)->exists());
+
+    return $candidate;
+}
 ```
+
+> **Correction**: `subdomains.name` is globally unique
+> (`app-modules/users/database/migrations/0000_00_00_000000_create_subdomains_table.php`).
+> The original draft of this controller stored `$data['company_name']`
+> verbatim as `name`, which crashes with a 500 the second time anyone signs
+> up with a company name that's already been used (e.g. two people both
+> typing "Acme Logistics") — exactly the scenario the "two signups with the
+> same company_name" test below exercises. Fixed by disambiguating the
+> stored `name` on collision only (`generateUniqueCompanyName`, added
+> above), not by rejecting the signup with a `unique:subdomains,name`
+> validation rule — rejecting it would block a legitimate, unrelated
+> company from signing up with the same display name, which isn't the
+> desired behavior for a public demo.
 
 Full imports: `Illuminate\Http\Request`, `Illuminate\Http\RedirectResponse`,
 `Illuminate\View\View`, `Illuminate\Support\Facades\DB`,
@@ -623,7 +688,12 @@ DemoSignupController:
       (assert Auth::check() / the session user matches) and redirects to
       that subdomain's own host
     - two signups with the same company_name produce two different
-      subdomain slugs (collision handling), both persisted successfully
+      subdomain slugs (collision handling), both persisted successfully,
+      with the second signup's stored `name` disambiguated (e.g.
+      "Acme Logistics" then "Acme Logistics (2)") rather than rejected
+    - a signup with a never-before-seen company_name stores that name
+      unchanged, with no suffix (the common-case counterpoint to the
+      collision test above)
     - a 6th signup attempt from the same IP within 60 minutes is throttled
       (429 / redirected with a rate-limit error), the 5th is not
 
