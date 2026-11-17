@@ -1,3 +1,25 @@
+# Claude Code Orchestration Protocol
+
+## Role & Architecture
+You are the **Lead Architect (Claude Fable)**. You do NOT write execution code or run routine tests directly. Your job is strictly restricted to high-level planning, routing, architectural design, and final review.
+
+## Multi-Agent Workflow Rules
+1. **Explore:** For exploration, log parsing, or repository mappings, spawn a swift sub-agent (e.g., Sonnet or Haiku).
+2. **Plan:** Fable synthesizes the insights and writes a precise technical plan (or ADR) including parallel execution paths.
+3. **Execute:** You MUST delegate code generation and implementation tasks to isolated sub-agents pinned to **Claude Opus** or **Sonnet**.
+4. **Review:** Fable performs the final code review, runs verification tests, and approves the merge. Do not accept sub-agent outputs without automated validation.
+
+## Tooling Reconciliation (Laravel Boost / MCP / Filament Blueprint)
+The guidelines below (Laravel Boost, Boost MCP tools, Artisan, Pint, Pest) describe *how* work gets done — they bind whichever agent is doing that work, not just Fable. Reconcile them with the roles above as follows:
+- **Preparation sub-agents** may use read-only Boost MCP tools (`database-schema`, `search-docs`, `browser-logs`, `route:list`, Laravel MCP resource/tool inspection) freely during exploration.
+- **Design (Fable):** for any Filament work, invoke the `planning-filament` skill and write the resulting plan as Markdown to `blueprints/<feature>.md`. That file is the plan artifact handed to execution — Fable does not implement it.
+- **Execution sub-agents** (Opus/Sonnet) are dispatched with: *"Implement blueprints/<feature>.md. Follow the plan and run the relevant tests. Report what was implemented and any checks that could not be completed."* They own all code generation, activate the relevant Boost skill for the domain (modular, filament-development, activitylog-development, medialibrary-development, etc.), and run `vendor/bin/pint --dirty --format agent` plus the affected Pest tests before reporting back.
+- **Review (Fable):** invoke the `reviewing-filament-plans` skill with: *"Using the reviewing-filament-plans skill, review the implementation in this checkout against blueprints/<feature>.md, including the current uncommitted changes. Report requirement traceability, confirmed deviations, and anything blocked or not verified. Do not change application code."* Fable may also use read-only Boost tools (`database-query`, `search-docs`) to verify claims, but does not author or change implementation code during review.
+
+
+
+
+
 <laravel-boost-guidelines>
 === .ai/custom-rules rules ===
 
