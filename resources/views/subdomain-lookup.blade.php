@@ -49,6 +49,14 @@
                 </button>
             </form>
 
+            @if (Route::has('demo.signup.show'))
+                <p class="mt-6 text-center text-sm text-gray-600">
+                    New here?
+                    <a href="{{ route('demo.signup.show') }}" class="font-semibold text-amber-600 hover:text-amber-700">
+                        Start a free demo
+                    </a>
+                </p>
+            @endif
 
         </div>
     </div>

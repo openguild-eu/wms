@@ -6,6 +6,7 @@ namespace Database\Seeders;
 
 use App\Models\Subdomain;
 use App\Models\Warehouse;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Modules\Brands\Models\Brand;
@@ -119,7 +120,26 @@ class TenantSeeder extends Seeder
         $this->command->info('  Warehouses: phae1, phae2');
     }
 
-    private function seedVatRates(Warehouse $warehouse): void
+    /**
+     * Seed a single warehouse with the default demo dataset.
+     *
+     * Wrapped in Model::unguarded() because the seeding methods mass-assign
+     * non-fillable columns such as warehouse_id; `db:seed` unguards models
+     * automatically, but direct callers of this method do not go through it.
+     */
+    public function seedWarehouse(Warehouse $warehouse): void
+    {
+        Model::unguarded(function () use ($warehouse): void {
+            $this->seedVatRates($warehouse);
+            $this->seedWarehouseDefaults($warehouse);
+            $this->seedClients($warehouse);
+            $this->seedOrderStatuses($warehouse);
+            $this->seedOrders($warehouse);
+            $this->seedPicklists($warehouse);
+        });
+    }
+
+    public function seedVatRates(Warehouse $warehouse): void
     {
         $rates = [
             ['name' => '6%', 'rate' => 6.0000],
@@ -138,7 +158,7 @@ class TenantSeeder extends Seeder
         }
     }
 
-    private function seedWarehouseDefaults(Warehouse $warehouse): void
+    public function seedWarehouseDefaults(Warehouse $warehouse): void
     {
         $brand = Brand::query()->firstOrCreate(
             [
@@ -243,7 +263,7 @@ class TenantSeeder extends Seeder
         );
     }
 
-    private function seedClients(Warehouse $warehouse): void
+    public function seedClients(Warehouse $warehouse): void
     {
         // Client 1: John Doe
         $client1 = Client::query()->firstOrCreate(
@@ -402,7 +422,7 @@ class TenantSeeder extends Seeder
         ]);
     }
 
-    private function seedOrderStatuses(Warehouse $warehouse): void
+    public function seedOrderStatuses(Warehouse $warehouse): void
     {
         $statuses = [
             [
@@ -507,7 +527,7 @@ class TenantSeeder extends Seeder
         }
     }
 
-    private function seedOrders(Warehouse $warehouse): void
+    public function seedOrders(Warehouse $warehouse): void
     {
         // Get required data
         $clients = Client::query()->where('warehouse_id', $warehouse->id)->get();
@@ -765,7 +785,7 @@ class TenantSeeder extends Seeder
         }
     }
 
-    private function seedPicklists(Warehouse $warehouse): void
+    public function seedPicklists(Warehouse $warehouse): void
     {
         $orders = Order::query()->where('warehouse_id', $warehouse->id)->get();
 
