@@ -744,6 +744,65 @@ PruneAbandonedDemoSubdomains:
     15-day-old expiry that --days=30 would not)
 ```
 
+## Addendum: Discoverability from the Central-Domain Landing Page
+
+**Gap found after initial build/manual testing**: the central domain's only
+landing page is `resources/views/subdomain-lookup.blade.php`, served at `/`
+by `App\Http\Controllers\SubdomainLookupController::show()`. It asks the
+visitor to type in a subdomain they already have — there is no link from it
+to `/demo/signup`. A first-time demo visitor has no subdomain yet, so they
+cannot reach the signup form unless they already know that URL. This is a
+real usability gap in the shipped feature, not a misunderstanding — confirmed
+by reading the view (it is a single lookup form with no other links).
+
+**Fix (core, demo-agnostic, same pattern as the `TenantSeeder`/`Subdomain`
+changes)**: add a conditional link beneath the existing form in
+`resources/views/subdomain-lookup.blade.php`, gated on whether the
+`demo.signup.show` named route exists:
+
+```blade
+@if (Route::has('demo.signup.show'))
+    <p class="mt-6 text-center text-sm text-gray-600">
+        New here?
+        <a href="{{ route('demo.signup.show') }}" class="font-semibold text-amber-600 hover:text-amber-700">
+            Start a free demo
+        </a>
+    </p>
+@endif
+```
+
+Place it directly after the closing `</form>` tag, still inside the
+`.bg-white.shadow-lg` card. `Route::has(...)` needs no import in a Blade
+file (it resolves via the global `Route` facade helper already available in
+Blade).
+
+This is safe for every self-hosted install: `demo.signup.show` is registered
+only by `app-modules/demo`'s routes file, and that module exists only in the
+`wms-demo` deployment — never in a self-hosted `wms` checkout. So
+`Route::has('demo.signup.show')` is always `false` there and this block
+never renders; no demo text, link, or markup is ever visible to a
+self-hosted customer. No controller, redirect, or route changes are needed —
+`DemoSignupController::store()` already redirects a newly-created user
+straight to their own subdomain host, so this addendum only fixes
+first-time discoverability of the signup form itself.
+
+**Tests**:
+
+```
+wms core (new): tests/Feature/SubdomainLookupPageTest.php
+  - visiting `/` on the central domain does NOT render a link to
+    `demo.signup.show` / does not contain the text "Start a free demo"
+    — this is the real regression guard for self-hosted installs (the
+    route genuinely does not exist in this checkout, so the assertion is
+    exercising real absence, not a mock)
+
+app-modules/demo (new): tests/Feature/CentralLandingPageTest.php
+  (run inside a full wms+module checkout, same convention as this
+  module's other tests)
+  - visiting `/` on the central domain DOES render a link whose `href`
+    matches `route('demo.signup.show')`
+```
+
 ## Checklist Confirmation
 
 - Namespaces: all components above are given full namespaces
